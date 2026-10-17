@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo List Life Dashboard — Property Tests</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 860px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background: #f5f5f5;
+      color: #222;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    p.subtitle { color: #555; margin-bottom: 2rem; }
+    .suite {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .suite h2 { font-size: 1rem; margin: 0 0 0.5rem; }
+    .result {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 4px;
+      margin-top: 0.5rem;
+    }
+    .pass { background: #d4edda; color: #155724; }
+    .fail { background: #f8d7da; color: #721c24; }
+    .running { background: #fff3cd; color: #856404; }
+    pre { margin: 0.5rem 0 0; font-size: 0.8rem; white-space: pre-wrap; word-break: break-word; }
+    #summary {
+      font-weight: bold;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Todo List Life Dashboard — Property Tests</h1>
+  <p class="subtitle">Property-based tests using <a href="https://fast-check.io/" target="_blank" rel="noopener">fast-check</a>. Open this file in a browser to run all tests.</p>
+
+  <div id="summary" class="running">⏳ Running tests…</div>
+
+  <!-- Test suites are injected here by JS -->
+  <div id="results"></div>
+
+  <script src="js/app.js" defer></script>
+  <script type="module">
+    // ─── Import fast-check via CDN ────────────────────────────────────────────
+    import * as fc from 'https://cdn.jsdelivr.net/npm/fast-check@3/+esm';
+
+    // ─── Wait for app.js to finish so _testExports is available ──────────────
+    await new Promise((resolve) => {
+      if (document.readyState === 'complete') { resolve(); return; }
+      window.addEventListener('load', resolve, { once: true });
+    });
+    const { _getGreeting } = window._testExports ?? {};
+
+    // ─── Minimal deep-equality helper ────────────────────────────────────────
+    function deepEqual(a, b) {
+      if (a === b) return true;
+      if (typeof a !== typeof b) return false;
+      if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false;
+        return a.every((v, i) => deepEqual(v, b[i]));
+      }
+      if (typeof a === 'object' && a !== null && b !== null) {
+        const keysA = Object.keys(a);
+        const keysB = Object.keys(b);
+        if (keysA.length !== keysB.length) return false;
+        return keysA.every((k) => deepEqual(a[k], b[k]));
+      }
+      return false;
+    }
+
+    // ─── Test runner helpers ──────────────────────────────────────────────────
+    const resultsEl = document.getElementById('results');
+    let passed = 0;
+    let failed = 0;
+
+    function addSuite(title, fn) {
+      const div = document.createElement('div');
+      div.className = 'suite';
+      div.innerHTML = `<h2>${title}</h2><div class="result running">⏳ Running…</div>`;
+      resultsEl.appendChild(div);
+      const resultEl = div.querySelector('.result');
+      return { div, resultEl, fn };
+    }
+
+    async function runSuite({ resultEl, fn }) {
+      try {
+        await fn(resultEl);
+      } catch (err) {
+        resultEl.className = 'result fail';
+        resultEl.innerHTML = `❌ Unexpected error<pre>${String(err)}</pre>`;
+        failed++;
+      }
+    }
+
+    function reportPass(resultEl, numRuns) {
+      resultEl.className = 'result pass';
+      resultEl.textContent = `✅ Passed — ${numRuns} runs`;
+      passed++;
+    }
+
+    function reportFail(resultEl, detail) {
+      resultEl.className = 'result fail';
+      resultEl.innerHTML = `❌ Failed<pre>${detail}</pre>`;
+      failed++;
+    }
+
+    function updateSummary() {
+      const summaryEl = document.getElementById('summary');
+      const total = passed + failed;
+      if (failed === 0) {
+        summaryEl.className = 'result pass';
+        summaryEl.textContent = `✅ All ${total} test(s) passed`;
+      } else {
+        summaryEl.className = 'result fail';
+        summaryEl.textContent = `❌ ${failed} of ${total} test(s) failed`;
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Property 1: Time-Based Greeting Coverage
+    // Feature: todo-list-life-dashboard, Property 1: Time-Based Greeting Coverage
+    //
+    // For any hour value in [0, 23], _getGreeting(hour) SHALL return exactly
+    // one of {"Good Morning", "Good Afternoon", "Good Evening", "Good Night"}
+    // and the mapping SHALL be exhaustive with no gaps or overlaps.
+    //
+    // Validates: Requirements 1.4, 1.5, 1.6, 1.7
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const VALID_GREETINGS = new Set([
+      'Good Morning',
+      'Good Afternoon',
+      'Good Evening',
+      'Good Night',
+    ]);
+
+    const suite1 = addSuite(
+      'Property 1: Time-Based Greeting Coverage — ' +
+      '_getGreeting returns exactly one valid greeting for every hour in [0, 23]'
+    );
+
+    await runSuite({
+      ...suite1,
+      fn(resultEl) {
+        // Feature: todo-list-life-dashboard, Property 1: Time-Based Greeting Coverage
+        const result = fc.check(
+          fc.property(fc.integer({ min: 0, max: 23 }), (hour) => {
+            const greeting = _getGreeting(hour);
+
+            // Must be one of the four valid greetings (no gaps, no overlaps)
+            return VALID_GREETINGS.has(greeting);
+          }),
+          { numRuns: 100 }
+        );
+
+        if (result.failed) {
+          reportFail(
+            resultEl,
+            `Counterexample: hour = ${JSON.stringify(result.counterexample)}\n` +
+            `Error: ${result.error}`
+          );
+        } else {
+          reportPass(resultEl, result.numRuns);
+        }
+      },
+    });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Property 6: Link Serialization Round-Trip
+    // Feature: todo-list-life-dashboard, Property 6: Link Serialization Round-Trip
+    //
+    // For any array of Link objects, JSON.parse(JSON.stringify(links)) SHALL
+    // produce an array that is deeply equal to the original (all id, label,
+    // and url fields preserved).
+    //
+    // Validates: Requirements 8.1, 8.2, 8.5
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Arbitrary for a single Link object matching the data model:
+    //   id:    string (non-empty)
+    //   label: string, 1–50 chars, trimmed (no leading/trailing whitespace)
+    //   url:   string starting with "http://" or "https://", 1–2048 total chars
+    const linkArbitrary = fc.record({
+      id: fc.oneof(
+        // UUID-like string
+        fc.uuid(),
+        // Date.now() fallback format
+        fc.tuple(fc.integer({ min: 0, max: 9999999999999 }), fc.float({ min: 0, max: 1 }))
+          .map(([ts, r]) => `${ts}-${r}`)
+      ),
+      label: fc.stringOf(
+        fc.char().filter((c) => c.trim() !== ''),  // no whitespace chars
+        { minLength: 1, maxLength: 50 }
+      ),
+      url: fc.oneof(
+        fc.webUrl().filter((u) => u.startsWith('http://') || u.startsWith('https://')),
+        // Guarantee both schemes are represented
+        fc.string({ minLength: 1, maxLength: 2040 }).map((s) => 'http://' + s),
+        fc.string({ minLength: 1, maxLength: 2040 }).map((s) => 'https://' + s)
+      ).filter((u) => u.length <= 2048),
+    });
+
+    const linkArrayArbitrary = fc.array(linkArbitrary, { minLength: 0, maxLength: 20 });
+
+    // ── Suite ────────────────────────────────────────────────────────────────
+    const suite6 = addSuite(
+      'Property 6: Link Serialization Round-Trip — ' +
+      'JSON.parse(JSON.stringify(links)) is deeply equal to the original Link[]'
+    );
+
+    await runSuite({
+      ...suite6,
+      fn(resultEl) {
+        // Feature: todo-list-life-dashboard, Property 6: Link Serialization Round-Trip
+        const result = fc.check(
+          fc.property(linkArrayArbitrary, (links) => {
+            const serialized = JSON.stringify(links);
+            const deserialized = JSON.parse(serialized);
+
+            // Must still be an array
+            if (!Array.isArray(deserialized)) return false;
+
+            // Must be deeply equal to the original
+            return deepEqual(deserialized, links);
+          }),
+          { numRuns: 100 }
+        );
+
+        if (result.failed) {
+          reportFail(
+            resultEl,
+            `Counterexample: ${JSON.stringify(result.counterexample, null, 2)}\n` +
+            `Error: ${result.error}`
+          );
+        } else {
+          reportPass(resultEl, result.numRuns);
+        }
+      },
+    });
+
+    updateSummary();
+  </script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo List Life Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+      @theme {
+        --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      }
+      @layer utilities {
+        .glass-card {
+          background: rgba(255,255,255,0.08);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.15);
+          border-radius: 1.25rem;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.10);
+        }
+        .glass-input {
+          background: rgba(255,255,255,0.08);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.18);
+          border-radius: 0.625rem;
+          color: #fff;
+          font-size: 0.875rem;
+          padding: 0.5rem 0.875rem;
+          outline: none;
+          width: 100%;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .glass-input::placeholder { color: rgba(255,255,255,0.35); }
+        .glass-input:focus { border-color: rgba(139,92,246,0.7); box-shadow: 0 0 0 3px rgba(139,92,246,0.25); }
+        .btn-primary {
+          background: linear-gradient(135deg,#8b5cf6,#6366f1);
+          color:#fff; font-size:0.8125rem; font-weight:600;
+          padding:0.5rem 1.125rem; border-radius:0.625rem;
+          border:none; cursor:pointer; transition:opacity 0.2s,transform 0.15s; white-space:nowrap;
+        }
+        .btn-primary:hover { opacity:0.9; transform:translateY(-1px); }
+        .btn-primary:active { transform:translateY(0); }
+        .btn-secondary {
+          background:rgba(255,255,255,0.10); color:#fff; font-size:0.8125rem; font-weight:500;
+          padding:0.5rem 1.125rem; border-radius:0.625rem;
+          border:1px solid rgba(255,255,255,0.18); cursor:pointer; transition:background 0.2s; white-space:nowrap;
+        }
+        .btn-secondary:hover { background:rgba(255,255,255,0.18); }
+        .btn-ghost {
+          background:transparent; color:rgba(255,255,255,0.55); font-size:0.8125rem; font-weight:500;
+          padding:0.5rem 1rem; border-radius:0.625rem;
+          border:1px solid transparent; cursor:pointer; transition:color 0.2s,border-color 0.2s; white-space:nowrap;
+        }
+        .btn-ghost:hover { color:#fff; border-color:rgba(255,255,255,0.20); }
+      }
+    </style>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="min-h-screen font-sans text-white antialiased overflow-x-hidden">
+    <div class="fixed inset-0 -z-10" style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 25%,#1e3a5f 60%,#0e7490 100%);"></div>
+    <div class="fixed -z-10 pointer-events-none" style="top:-8rem;left:-8rem;width:28rem;height:28rem;border-radius:9999px;background:rgba(139,92,246,0.25);filter:blur(80px);"></div>
+    <div class="fixed -z-10 pointer-events-none" style="bottom:-8rem;right:-8rem;width:28rem;height:28rem;border-radius:9999px;background:rgba(34,211,238,0.18);filter:blur(80px);"></div>
+    <div class="fixed -z-10 pointer-events-none" style="top:40%;left:40%;transform:translate(-50%,-50%);width:40rem;height:40rem;border-radius:9999px;background:rgba(99,102,241,0.15);filter:blur(100px);"></div>
+    <div class="min-h-screen px-4 py-8 md:px-8 lg:px-16 xl:px-24 max-w-7xl mx-auto">
+      <section id="greeting-widget" class="widget glass-card mb-8 text-center py-12 px-6">
+        <div id="greeting-text" class="text-2xl md:text-3xl font-semibold tracking-wide text-white/70 mb-3 uppercase"></div>
+        <div id="greeting-time" class="text-6xl md:text-8xl font-thin tabular-nums tracking-tighter text-white leading-none"></div>
+        <div id="greeting-date" class="text-sm md:text-base font-normal text-white/50 mt-4 tracking-widest"></div>
+      </section>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
+        <section id="focus-timer" class="widget glass-card flex flex-col items-center gap-6 py-10 px-6">
+          <h2 class="text-xs font-bold uppercase tracking-[0.25em] text-white/40">Focus Timer</h2>
+          <div id="timer-display" class="text-8xl font-extralight tabular-nums tracking-tighter text-white" style="text-shadow:0 0 40px rgba(139,92,246,0.5);">25:00</div>
+          <div id="timer-message" class="timer-message hidden"></div>
+          <div class="timer-controls flex gap-3">
+            <button id="timer-start" class="btn-primary">Start</button>
+            <button id="timer-stop" class="btn-secondary">Stop</button>
+            <button id="timer-reset" class="btn-ghost">Reset</button>
+          </div>
+          <div class="timer-settings flex items-center gap-2 mt-2">
+  <input 
+    type="number" 
+    id="timer-input" 
+    min="1" 
+    max="120" 
+    value="25" 
+    class="glass-input w-20 text-center py-1 px-2" 
+    placeholder="Menit"
+  />
+  <button id="timer-set" class="btn-secondary py-1 px-3 text-xs">Set Waktu</button>
+</div>
+        </section>
+        <section id="todo-list" class="widget glass-card flex flex-col gap-4 py-8 px-6">
+          <h2 class="text-xs font-bold uppercase tracking-[0.25em] text-white/40">To-Do List</h2>
+          <select id="todo-sort" class="glass-input w-full text-sm" style="background-color: rgba(255,255,255,0.05); cursor: pointer;">
+    <option value="default" class="text-black">Urutkan berdasarkan...</option>
+    <option value="az" class="text-black">Abjad (A - Z)</option>
+    <option value="za" class="text-black">Abjad (Z - A)</option>
+  </select>
+          <div class="todo-input-row flex gap-2">
+            <input type="text" id="todo-input" maxlength="200" placeholder="Add a new task..." aria-label="New task text" class="glass-input flex-1 min-w-0" />
+            <button id="todo-add" class="btn-primary shrink-0">Add</button>
+          </div>
+          <div id="todo-error" class="error-message hidden"></div>
+          <ul id="todo-task-list" aria-label="Task list" class="todo-list-container"></ul>
+        </section>
+        <section id="quick-links" class="widget glass-card flex flex-col gap-4 py-8 px-6">
+          <h2 class="text-xs font-bold uppercase tracking-[0.25em] text-white/40">Quick Links</h2>
+          <div class="links-input-group flex flex-col gap-2">
+            <input type="text" id="link-label-input" maxlength="50" placeholder="Label" aria-label="Link label" class="glass-input" />
+            <input type="text" id="link-url-input" maxlength="2048" placeholder="https://..." aria-label="Link URL" class="glass-input" />
+            <button id="link-add" class="btn-primary w-full">Add Link</button>
+          </div>
+          <div id="links-validation-message" class="error-message hidden"></div>
+          <div id="links-cap-message" class="cap-message hidden"></div>
+          <div id="links-panel" aria-label="Quick links" class="links-panel-container"></div>
+        </section>
+      </div>
+    </div>
+    <script src="js/app.js" defer></script>
+  </body>
+</html>
